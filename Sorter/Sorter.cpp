@@ -12,7 +12,7 @@
 Sorter::Sorter(const std::string& inputFilename, const std::string& ouputFilename, const unsigned& maxMemory, const unsigned& threadCount):
 	_inputFilename(inputFilename),
 	_outputFilename(ouputFilename),
-	_tempDirectory("."),
+	_tempDirectory(""),
 	_maxMemory(maxMemory>1?maxMemory-1:maxMemory), //резервируем 1мб на создание временных переменных и тп
 	_threadCount(threadCount),
 	_bufElementCount(_maxMemory *1000000/ sizeof(unsigned)/ threadCount),
@@ -27,8 +27,8 @@ void Sorter::Sort()
 	if (!in) {
 		throw std::runtime_error("Error opening file");
 	}
-// 	std::experimental::filesystem::remove_all(_tempDirectory);
-// 	std::experimental::filesystem::create_directory(_tempDirectory);
+//  	std::experimental::filesystem::remove_all(_tempDirectory);
+//  	std::experimental::filesystem::create_directory(_tempDirectory);
 	
 	std::vector<std::thread> thrVector;
 	for (unsigned i = 0; i < _threadCount; i++)
@@ -71,7 +71,13 @@ void Sorter::sortFirst(std::ifstream& in)
 		std::sort(buf.begin(), buf.end());
 
 		_counterFiles++;
-		std::ofstream out(_tempDirectory + "/out_" + std::to_string(_counterFiles) + ".bin", std::ios::out | std::ios::binary);
+		std::string filepath;
+		if (!_tempDirectory.empty())
+			filepath = _tempDirectory + "/out_" + std::to_string(_counterFiles) + ".bin";
+		else
+			filepath = "out_" + std::to_string(_counterFiles) + ".bin";
+
+		std::ofstream out(filepath, std::ios::out | std::ios::binary);
 		if (!out) {
 			throw std::runtime_error("Error output file!");
 		}
@@ -91,9 +97,15 @@ void Sorter::sortSecond()
 	std::vector<int> values(_counterFiles+1);
 	for (unsigned i = 0; i <= _counterFiles; ++i)
 	{
-		files.push_back(std::ifstream(_tempDirectory + "/out_" + std::to_string(i) + ".bin", std::ios::out | std::ios::binary));
+		std::string filepath;
+		if (!_tempDirectory.empty())
+			filepath = _tempDirectory + "/out_" + std::to_string(i) + ".bin";
+		else
+			filepath = "out_" + std::to_string(i) + ".bin";
+
+		files.push_back(std::ifstream(filepath, std::ios::out | std::ios::binary));
 		if (!files[i]) {
-			throw std::runtime_error("Error opening file");
+			throw std::runtime_error("Error opening file " + filepath);
 		}
 		unsigned readedValue;
 		files[i].read((char*)&readedValue, sizeof(readedValue));
